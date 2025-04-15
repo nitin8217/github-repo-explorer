@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import RepoList from "./components/RepoList";
-
+import { MoonIcon, SunIcon } from "@heroicons/react/solid";
 function App() {
   const [username, setUsername] = useState("");
   const [repos, setRepos] = useState([]);
@@ -9,7 +9,22 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [darkMode, setDarkMode] = useState(false); // Dark mode state
   const reposPerPage = 6;
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
+
+  // Update the body class for dark mode
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add("dark");
+    } else {
+      document.body.classList.remove("dark");
+    }
+  }, [darkMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,8 +88,8 @@ function App() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-50">
-      <h1 className="text-5xl font-extrabold mb-8">🚀 GitHub Repo Explorer</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
+      <h1 className="text-5xl font-extrabold mb-8 text-gray-800 dark:text-white">🚀 GitHub Repo Explorer</h1>
 
       <form onSubmit={handleSubmit} className="flex space-x-4 mb-6">
         <input
@@ -82,7 +97,7 @@ function App() {
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           placeholder="Enter GitHub username"
-          className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
         />
         <button
           type="submit"
@@ -100,7 +115,7 @@ function App() {
               setSortOption(e.target.value);
               setCurrentPage(1);
             }}
-            className="border border-gray-300 rounded px-3 py-2"
+            className="border border-gray-300 rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
           >
             <option value="name-asc">Name (A-Z)</option>
             <option value="name-desc">Name (Z-A)</option>
@@ -116,7 +131,7 @@ function App() {
               setCurrentPage(1);
             }}
             placeholder="Search repositories..."
-            className="border border-gray-300 rounded px-3 py-2"
+            className="border border-gray-300 rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
           />
         </div>
       )}
@@ -150,6 +165,18 @@ function App() {
           </button>
         </div>
       )}
+
+      {/* Dark Mode Toggle Button */}
+      <button
+        onClick={toggleDarkMode}
+        className="absolute top-6 right-6 p-3 bg-gray-800 text-white rounded-full shadow-md hover:bg-gray-700 focus:outline-none transition"
+      >
+        {darkMode ? (
+          <SunIcon className="w-6 h-6" />
+        ) : (
+          <MoonIcon className="w-6 h-6" />
+        )}
+      </button>
     </div>
   );
 }
