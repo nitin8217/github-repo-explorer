@@ -10,7 +10,6 @@ function RepoList({ repos, loading }) {
     );
   }
 
-  
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-5xl">
       {repos.map((repo) => (
@@ -19,9 +18,24 @@ function RepoList({ repos, loading }) {
           className="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
         >
           <h2 className="text-xl font-semibold mb-2">{repo.name}</h2>
-          
-          {repo.description && <p className="text-gray-600 mb-3 overflow-hidden text-ellipsis line-clamp-3">{repo.description}</p>}
-          
+
+          {repo.description && (
+            <p className="text-gray-600 mb-3 overflow-hidden text-ellipsis line-clamp-3">
+              {repo.description}
+            </p>
+          )}
+          {repo.topics && repo.topics.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {repo.topics.map((topic) => (
+                <span
+                  key={topic}
+                  className="bg-gray-200 text-gray-800 px-2 py-1 rounded text-xs"
+                >
+                  {topic}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <div className="flex items-center text-sm text-gray-500">
               <span className="mr-1">⭐</span>
@@ -38,6 +52,10 @@ function RepoList({ repos, loading }) {
             <div className="flex items-center text-sm text-gray-500">
               <span className="mr-1">👀</span>
               {repo.watchers_count}
+            </div>
+            <div className="flex items-center text-sm text-gray-500">
+              <span className="mr-1">👥</span>
+              {repo.contributors_count || "N/A"} Contributors
             </div>
             <div className="flex items-center text-sm text-gray-500">
               <span className="mr-1">🐞</span>

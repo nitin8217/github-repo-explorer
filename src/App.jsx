@@ -10,7 +10,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [darkMode, setDarkMode] = useState(false); // Dark mode state
+  const [darkMode, setDarkMode] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const reposPerPage = 6;
@@ -20,43 +20,55 @@ function App() {
     setDarkMode(!darkMode);
   };
 
-  // Update the body class for dark mode
-  useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add("dark");
-    } else {
-      document.body.classList.remove("dark");
-    }
-  }, [darkMode]);
-
+  // Export repositories to CSV
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setRepos([]);
     setLoading(true);
     setCurrentPage(1);
-    setSubmitted(true);  // mark form as submitted
-  
+    setSubmitted(true);
+
     if (!username) {
       setError("Please enter a GitHub username.");
       setLoading(false);
       return;
     }
-  
+
     try {
-      const response = await fetch(`https://api.github.com/users/${username}/repos`);
+      const response = await fetch(
+        `https://api.github.com/users/${username}/repos`
+      );
       if (!response.ok) {
         throw new Error("User not found.");
       }
       const data = await response.json();
-      setRepos(data);
+
+      const reposWithContributors = await Promise.all(
+        data.map(async (repo) => {
+          try {
+            const contributorsResponse = await fetch(
+              `https://api.github.com/repos/${repo.owner.login}/${repo.name}/contributors`
+            );
+            if (contributorsResponse.ok) {
+              const contributors = await contributorsResponse.json();
+              return { ...repo, contributors_count: contributors.length };
+            }
+          } catch {
+            return { ...repo, contributors_count: "N/A" };
+          }
+          return { ...repo, contributors_count: "N/A" };
+        })
+      );
+
+      setRepos(reposWithContributors);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
-  
 
   const sortedRepos = [...repos].sort((a, b) => {
     if (sortOption === "name-asc") {
@@ -74,6 +86,35 @@ function App() {
   const filteredRepos = sortedRepos.filter((repo) =>
     repo.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const exportToCSV = () => {
+    if (filteredRepos.length === 0) {
+      alert("No repositories to export.");
+      return;
+    }
+
+    const headers = ["Name", "Description", "Stars", "Forks", "Language", "Contributors", "URL"];
+    const rows = filteredRepos.map((repo) => [
+      repo.name,
+      repo.description || "N/A",
+      repo.stargazers_count,
+      repo.forks_count,
+      repo.language || "N/A",
+      repo.contributors_count || "N/A",
+      repo.html_url,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((item) => `"${item}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${username}_repositories.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const indexOfLastRepo = currentPage * reposPerPage;
   const indexOfFirstRepo = indexOfLastRepo - reposPerPage;
@@ -94,8 +135,10 @@ function App() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
-      <h1 className="text-5xl font-extrabold mb-8 text-gray-800 dark:text-white">🚀 GitHub Repo Explorer</h1>
-      
+      <h1 className="text-5xl font-extrabold mb-8 text-gray-800 dark:text-white">
+        🚀 GitHub Repo Explorer
+      </h1>
+
       <form onSubmit={handleSubmit} className="flex space-x-4 mb-6">
         <input
           type="text"
@@ -112,8 +155,8 @@ function App() {
         </button>
       </form>
       {error && (
-  <p className="mb-4 text-red-500 font-medium">{error}</p>
-)}
+        <p className="mb-4 text-red-500 font-medium">{error}</p>
+      )}
 
       {repos.length > 0 && (
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -143,25 +186,35 @@ function App() {
           />
         </div>
       )}
-       {loading ? (
-  <div className="flex flex-col items-center">
-    <div className="flex space-x-2 mt-8">
-  <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
-  <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce delay-150"></div>
-  <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce delay-300"></div>
-</div>
-<p className="mt-4 text-lg font-semibold dark:text-white">Loading...</p>
 
-  </div>
-) : submitted && repos.length === 0 && !error ? (
-  <p className="mt-6 text-gray-600 dark:text-gray-300 text-lg">
-    No repositories found for <span className="font-semibold">{username}</span>.
-  </p>
-) : (
-  <RepoList repos={currentRepos} />
-)}
+      {repos.length > 0 && (
+        <button
+          onClick={exportToCSV}
+          className="bg-green-500 text-white px-5 py-2 rounded-lg hover:bg-green-600 transition mb-6"
+        >
+          Export to CSV
+        </button>
+      )}
 
-
+      {loading ? (
+        <div className="flex flex-col items-center">
+          <div className="flex space-x-2 mt-8">
+            <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
+            <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce delay-150"></div>
+            <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce delay-300"></div>
+          </div>
+          <p className="mt-4 text-lg font-semibold dark:text-white">
+            Loading...
+          </p>
+        </div>
+      ) : submitted && repos.length === 0 && !error ? (
+        <p className="mt-6 text-gray-600 dark:text-gray-300 text-lg">
+          No repositories found for{" "}
+          <span className="font-semibold">{username}</span>.
+        </p>
+      ) : (
+        <RepoList repos={currentRepos} loading={loading} />
+      )}
 
       {filteredRepos.length > 0 && !loading && (
         <div className="flex items-center gap-4 mt-8">
@@ -173,8 +226,8 @@ function App() {
             Previous
           </button>
           <span className="font-medium text-gray-900 dark:text-gray-100">
-  Page {currentPage} of {totalPages}
-</span>
+            Page {currentPage} of {totalPages}
+          </span>
 
           <button
             onClick={handleNextPage}
@@ -186,7 +239,6 @@ function App() {
         </div>
       )}
 
-      {/* Dark Mode Toggle Button */}
       <button
         onClick={toggleDarkMode}
         className="absolute top-6 right-6 p-3 bg-gray-800 text-white rounded-full shadow-md hover:bg-gray-700 focus:outline-none transition"
