@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import RepoList from "./components/RepoList";
 import { MoonIcon, SunIcon } from "@heroicons/react/solid";
+import { jsPDF } from "jspdf"; // Import jsPDF for PDF generation
 
 function App() {
   const [username, setUsername] = useState("");
@@ -20,8 +21,85 @@ function App() {
     setDarkMode(!darkMode);
   };
 
-  // Export repositories to CSV
+  // Apply dark mode class to body
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add("dark");
+    } else {
+      document.body.classList.remove("dark");
+    }
+  }, [darkMode]);
+
+  // Export repositories in the selected format
+  const exportData = (format) => {
+    if (filteredRepos.length === 0) {
+      alert("No repositories to export.");
+      return;
+    }
+
+    if (format === "json") {
+      // Export as JSON
+      const jsonContent = JSON.stringify(filteredRepos, null, 2);
+      const blob = new Blob([jsonContent], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${username}repositories.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (format === "csv") {
+      // Export as CSV
+      const headers = ["Name", "Description", "Stars", "Forks", "Language", "Contributors", "URL"];
+      const rows = filteredRepos.map((repo) => [
+        repo.name,
+        repo.description || "N/A",
+        repo.stargazers_count,
+        repo.forks_count,
+        repo.language || "N/A",
+        repo.contributors_count || "N/A",
+        repo.html_url,
+      ]);
+
+      const csvContent = [headers, ...rows]
+        .map((row) => row.map((item) => `"${item}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${username}_repositories.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (format === "pdf") {
+      // Export as PDF
+      const doc = new jsPDF();
+      doc.setFontSize(12);
+      doc.text("Filtered GitHub Repositories", 10, 10);
   
+      // Add table headers
+      const headers = ["#", "Name", "Stars", "Forks", "Language", "URL"];
+      let y = 20;
+      doc.text(headers.join(" -- "), 10, y);
+  
+      // Add repository data
+      filteredRepos.forEach((repo, index) => {
+        y += 10;
+        const row = [
+          index + 1,
+          repo.name,
+          repo.stargazers_count,
+          repo.forks_count,
+          repo.language || "N/A",
+          repo.html_url,
+        ];
+        doc.text(row.join(" -- "), 10, y);
+      });
+  
+      doc.save(`${username}_repositories.pdf`);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -86,35 +164,6 @@ function App() {
   const filteredRepos = sortedRepos.filter((repo) =>
     repo.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const exportToCSV = () => {
-    if (filteredRepos.length === 0) {
-      alert("No repositories to export.");
-      return;
-    }
-
-    const headers = ["Name", "Description", "Stars", "Forks", "Language", "Contributors", "URL"];
-    const rows = filteredRepos.map((repo) => [
-      repo.name,
-      repo.description || "N/A",
-      repo.stargazers_count,
-      repo.forks_count,
-      repo.language || "N/A",
-      repo.contributors_count || "N/A",
-      repo.html_url,
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map((row) => row.map((item) => `"${item}"`).join(","))
-      .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${username}_repositories.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   const indexOfLastRepo = currentPage * reposPerPage;
   const indexOfFirstRepo = indexOfLastRepo - reposPerPage;
@@ -188,12 +237,26 @@ function App() {
       )}
 
       {repos.length > 0 && (
-        <button
-          onClick={exportToCSV}
-          className="bg-green-500 text-white px-5 py-2 rounded-lg hover:bg-green-600 transition mb-6"
-        >
-          Export to CSV
-        </button>
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <button
+            onClick={() => exportData("json")}
+            className="bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 transition"
+          >
+            Export as JSON
+          </button>
+          <button
+            onClick={() => exportData("csv")}
+            className="bg-green-500 text-white px-5 py-2 rounded-lg hover:bg-green-600 transition"
+          >
+            Export as CSV
+          </button>
+          <button
+            onClick={() => exportData("pdf")}
+            className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition"
+          >
+            Export as PDF
+          </button>
+        </div>
       )}
 
       {loading ? (
