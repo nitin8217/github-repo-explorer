@@ -260,16 +260,7 @@ function App() {
       )}
 
       {loading ? (
-        <div className="flex flex-col items-center">
-          <div className="flex space-x-2 mt-8">
-            <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
-            <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce delay-150"></div>
-            <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce delay-300"></div>
-          </div>
-          <p className="mt-4 text-lg font-semibold dark:text-white">
-            Loading...
-          </p>
-        </div>
+         <RepoList repos={[]} loading={true} />
       ) : submitted && repos.length === 0 && !error ? (
         <p className="mt-6 text-gray-600 dark:text-gray-300 text-lg">
           No repositories found for{" "}
