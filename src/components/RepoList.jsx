@@ -1,10 +1,16 @@
 import React from "react";
 
-function RepoList({ repos }) {
-  if (repos.length === 0) {
-    return null; // Don't show anything if no repos
+function RepoList({ repos, loading }) {
+  if (loading) {
+    // You can add a loader component here
+    return (
+      <div className="flex justify-center items-center min-h-[200px]">
+        <p className="text-gray-500 text-lg">Loading...</p>
+      </div>
+    );
   }
 
+  
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-5xl">
       {repos.map((repo) => (
@@ -14,9 +20,9 @@ function RepoList({ repos }) {
         >
           <h2 className="text-xl font-semibold mb-2">{repo.name}</h2>
           
-          {repo.description && <p className="text-gray-600 mb-3">{repo.description}</p>}
+          {repo.description && <p className="text-gray-600 mb-3 overflow-hidden text-ellipsis line-clamp-3">{repo.description}</p>}
           
-          <div className="flex items-center space-x-4 mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
             <div className="flex items-center text-sm text-gray-500">
               <span className="mr-1">⭐</span>
               {repo.stargazers_count}
@@ -28,6 +34,14 @@ function RepoList({ repos }) {
             <div className="flex items-center text-sm text-gray-500">
               <span className="mr-1">💻</span>
               {repo.language || "N/A"}
+            </div>
+            <div className="flex items-center text-sm text-gray-500">
+              <span className="mr-1">👀</span>
+              {repo.watchers_count}
+            </div>
+            <div className="flex items-center text-sm text-gray-500">
+              <span className="mr-1">🐞</span>
+              {repo.open_issues_count} Open Issues
             </div>
           </div>
 

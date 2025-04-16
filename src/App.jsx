@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import RepoList from "./components/RepoList";
 import { MoonIcon, SunIcon } from "@heroicons/react/solid";
+
 function App() {
   const [username, setUsername] = useState("");
   const [repos, setRepos] = useState([]);
@@ -10,6 +11,8 @@ function App() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false); // Dark mode state
+  const [submitted, setSubmitted] = useState(false);
+
   const reposPerPage = 6;
 
   // Toggle dark mode
@@ -32,13 +35,14 @@ function App() {
     setRepos([]);
     setLoading(true);
     setCurrentPage(1);
-
+    setSubmitted(true);  // mark form as submitted
+  
     if (!username) {
       setError("Please enter a GitHub username.");
       setLoading(false);
       return;
     }
-
+  
     try {
       const response = await fetch(`https://api.github.com/users/${username}/repos`);
       if (!response.ok) {
@@ -52,6 +56,7 @@ function App() {
       setLoading(false);
     }
   };
+  
 
   const sortedRepos = [...repos].sort((a, b) => {
     if (sortOption === "name-asc") {
@@ -90,7 +95,7 @@ function App() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
       <h1 className="text-5xl font-extrabold mb-8 text-gray-800 dark:text-white">🚀 GitHub Repo Explorer</h1>
-
+      
       <form onSubmit={handleSubmit} className="flex space-x-4 mb-6">
         <input
           type="text"
@@ -106,6 +111,9 @@ function App() {
           Search
         </button>
       </form>
+      {error && (
+  <p className="mb-4 text-red-500 font-medium">{error}</p>
+)}
 
       {repos.length > 0 && (
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -135,14 +143,25 @@ function App() {
           />
         </div>
       )}
+       {loading ? (
+  <div className="flex flex-col items-center">
+    <div className="flex space-x-2 mt-8">
+  <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce"></div>
+  <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce delay-150"></div>
+  <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce delay-300"></div>
+</div>
+<p className="mt-4 text-lg font-semibold dark:text-white">Loading...</p>
 
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+  </div>
+) : submitted && repos.length === 0 && !error ? (
+  <p className="mt-6 text-gray-600 dark:text-gray-300 text-lg">
+    No repositories found for <span className="font-semibold">{username}</span>.
+  </p>
+) : (
+  <RepoList repos={currentRepos} />
+)}
 
-      {loading ? (
-        <p className="text-lg font-semibold">🔄 Loading repositories...</p>
-      ) : (
-        <RepoList repos={currentRepos} />
-      )}
+
 
       {filteredRepos.length > 0 && !loading && (
         <div className="flex items-center gap-4 mt-8">
@@ -153,9 +172,10 @@ function App() {
           >
             Previous
           </button>
-          <span className="font-medium">
-            Page {currentPage} of {totalPages}
-          </span>
+          <span className="font-medium text-gray-900 dark:text-gray-100">
+  Page {currentPage} of {totalPages}
+</span>
+
           <button
             onClick={handleNextPage}
             disabled={currentPage === totalPages}
