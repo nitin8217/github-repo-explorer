@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { DownloadIcon } from "@heroicons/react/solid";
 
 function ExportDropdown({ onExport }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,11 +23,11 @@ function ExportDropdown({ onExport }) {
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700"
-      >
-        📥 Export
-      </button>
+  onClick={() => setIsOpen(!isOpen)}
+  className="p-2 bg-blue-600 text-white rounded-full shadow hover:bg-blue-700"
+>
+  <DownloadIcon className="w-5 h-5" />
+</button>
 
       <AnimatePresence>
         {isOpen && (
