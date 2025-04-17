@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import RepoList from "./components/RepoList";
+import ExportDropdown from "./components/ExportDropdown"; // Import the ExportDropdown component
 import { MoonIcon, SunIcon } from "@heroicons/react/solid";
 import { jsPDF } from "jspdf"; // Import jsPDF for PDF generation
 
@@ -44,7 +45,7 @@ function App() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${username}repositories.json`;
+      a.download = `${username}_filtered_repositories.json`;
       a.click();
       URL.revokeObjectURL(url);
     } else if (format === "csv") {
@@ -68,7 +69,7 @@ function App() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${username}_repositories.csv`;
+      a.download = `${username}_filtered_repositories.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } else if (format === "pdf") {
@@ -76,12 +77,12 @@ function App() {
       const doc = new jsPDF();
       doc.setFontSize(12);
       doc.text("Filtered GitHub Repositories", 10, 10);
-  
+
       // Add table headers
       const headers = ["#", "Name", "Stars", "Forks", "Language", "URL"];
       let y = 20;
-      doc.text(headers.join(" -- "), 10, y);
-  
+      doc.text(headers.join(" | "), 10, y);
+
       // Add repository data
       filteredRepos.forEach((repo, index) => {
         y += 10;
@@ -93,10 +94,10 @@ function App() {
           repo.language || "N/A",
           repo.html_url,
         ];
-        doc.text(row.join(" -- "), 10, y);
+        doc.text(row.join(" | "), 10, y);
       });
-  
-      doc.save(`${username}_repositories.pdf`);
+
+      doc.save(`${username}_filtered_repositories.pdf`);
     }
   };
 
@@ -238,24 +239,7 @@ function App() {
 
       {repos.length > 0 && (
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <button
-            onClick={() => exportData("json")}
-            className="bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 transition"
-          >
-            Export as JSON
-          </button>
-          <button
-            onClick={() => exportData("csv")}
-            className="bg-green-500 text-white px-5 py-2 rounded-lg hover:bg-green-600 transition"
-          >
-            Export as CSV
-          </button>
-          <button
-            onClick={() => exportData("pdf")}
-            className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition"
-          >
-            Export as PDF
-          </button>
+          <ExportDropdown onExport={exportData} />
         </div>
       )}
 
