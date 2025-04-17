@@ -17,7 +17,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-
+  const [searchType, setSearchType] = useState("username"); // Add this new state
+  const [repoSearch, setRepoSearch] = useState("");
   const reposPerPage = 6;
   const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN;
 
@@ -139,6 +140,52 @@ function App() {
       setLoading(false);
     }
   };
+  const handleRepoSearch = async () => {
+    setError("");
+    setRepos([]);
+    setLoading(true);
+    setCurrentPage(1);
+    setSubmitted(true);
+  
+    try {
+      const response = await fetch(
+        `https://api.github.com/search/repositories?q=${repoSearch}`,
+        {
+          headers: {
+            Authorization: `token ${GITHUB_TOKEN}`,
+          },
+        }
+      );
+      if (!response.ok) throw new Error("Error searching repositories");
+      const data = await response.json();
+      const reposWithContributors = await Promise.all(
+        data.items.map(async (repo) => {
+          try {
+            const contributorsResponse = await fetch(
+              `https://api.github.com/repos/${repo.owner.login}/${repo.name}/contributors`,
+              {
+                headers: {
+                  Authorization: `token ${GITHUB_TOKEN}`,
+                },
+              }
+            );
+            if (contributorsResponse.ok) {
+              const contributors = await contributorsResponse.json();
+              return { ...repo, contributors_count: contributors.length };
+            }
+          } catch {
+            return { ...repo, contributors_count: "N/A" };
+          }
+          return { ...repo, contributors_count: "N/A" };
+        })
+      );
+      setRepos(reposWithContributors);
+    } catch (err) {
+      setError(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const sortedRepos = [...repos].sort((a, b) => {
     if (sortOption === "name-asc") return a.name.localeCompare(b.name);
@@ -148,10 +195,20 @@ function App() {
     return 0;
   });
 
-  const filteredRepos = sortedRepos.filter((repo) =>
-    repo.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
+  // Replace the existing filteredRepos constant with this:
+const filteredRepos = sortedRepos.filter((repo) => {
+  const query = searchQuery.toLowerCase();
+  if (searchType === "username") {
+    // For username search, filter by repository name only
+    return repo.name.toLowerCase().includes(query);
+  } else {
+    // For repository search, filter by repository name or owner's username
+    return (
+      repo.name.toLowerCase().includes(query) || 
+      repo.owner.login.toLowerCase().includes(query)
+    );
+  }
+});
   const indexOfLastRepo = currentPage * reposPerPage;
   const indexOfFirstRepo = indexOfLastRepo - reposPerPage;
   const currentRepos = filteredRepos.slice(indexOfFirstRepo, indexOfLastRepo);
@@ -178,34 +235,71 @@ function App() {
   transition={{ duration: 0.6 }}
   className="w-full max-w-2xl bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl mb-8"
 >
+  <div className="mb-4 flex gap-4">
+    <button
+      onClick={() => setSearchType("username")}
+      className={`px-4 py-2 rounded-lg ${
+        searchType === "username"
+          ? "bg-blue-500 text-white"
+          : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+      }`}
+    >
+      Search by Username
+    </button>
+    <button
+      onClick={() => setSearchType("repository")}
+      className={`px-4 py-2 rounded-lg ${
+        searchType === "repository"
+          ? "bg-blue-500 text-white"
+          : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+      }`}
+    >
+      Search by Repository
+    </button>
+  </div>
+  
   <form
-    onSubmit={handleSubmit}
+    onSubmit={(e) => {
+      e.preventDefault();
+      if (searchType === "username") {
+        handleSubmit(e);
+      } else {
+        handleRepoSearch();
+      }
+    }}
     className="flex items-center space-x-4"
   >
     <div className="relative flex-1">
-    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-  <SearchIcon className="h-5 w-5" />
-</span>
-
+      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+        <SearchIcon className="h-5 w-5" />
+      </span>
       <input
         type="text"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        placeholder="Search GitHub username..."
+        value={searchType === "username" ? username : repoSearch}
+        onChange={(e) => {
+          if (searchType === "username") {
+            setUsername(e.target.value);
+          } else {
+            setRepoSearch(e.target.value);
+          }
+        }}
+        placeholder={
+          searchType === "username"
+            ? "Enter GitHub username..."
+            : "Search repositories..."
+        }
         className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
       />
     </div>
     <button
-  type="submit"
-  className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition active:scale-95 shadow-md"
->
-  <SearchIcon className="w-5 h-5" />
-  <span>Search</span>
-</button>
-
+      type="submit"
+      className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition active:scale-95 shadow-md"
+    >
+      <SearchIcon className="w-5 h-5" />
+      <span>Search</span>
+    </button>
   </form>
 </motion.div>
-
       {/* Display error message */}
       {error && (
         <p className="text-red-500 text-lg mb-4">
