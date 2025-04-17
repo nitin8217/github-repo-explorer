@@ -101,53 +101,69 @@ function App() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setRepos([]);
-    setLoading(true);
-    setCurrentPage(1);
-    setSubmitted(true);
+const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN;
 
-    if (!username) {
-      setError("Please enter a GitHub username.");
-      setLoading(false);
-      return;
-    }
 
-    try {
-      const response = await fetch(
-        `https://api.github.com/users/${username}/repos`
-      );
-      if (!response.ok) {
-        throw new Error("User not found.");
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  setRepos([]);
+  setLoading(true);
+  setCurrentPage(1);
+  setSubmitted(true);
+
+  if (!username) {
+    setError("Please enter a GitHub username.");
+    setLoading(false);
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.github.com/users/${username}/repos`,
+      {
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+        },
       }
-      const data = await response.json();
+    );
 
-      const reposWithContributors = await Promise.all(
-        data.map(async (repo) => {
-          try {
-            const contributorsResponse = await fetch(
-              `https://api.github.com/repos/${repo.owner.login}/${repo.name}/contributors`
-            );
-            if (contributorsResponse.ok) {
-              const contributors = await contributorsResponse.json();
-              return { ...repo, contributors_count: contributors.length };
-            }
-          } catch {
-            return { ...repo, contributors_count: "N/A" };
-          }
-          return { ...repo, contributors_count: "N/A" };
-        })
-      );
-
-      setRepos(reposWithContributors);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      throw new Error("User not found.");
     }
-  };
+
+    const data = await response.json();
+
+    const reposWithContributors = await Promise.all(
+      data.map(async (repo) => {
+        try {
+          const contributorsResponse = await fetch(
+            `https://api.github.com/repos/${repo.owner.login}/${repo.name}/contributors`,
+            {
+              headers: {
+                Authorization: `token ${GITHUB_TOKEN}`,
+              },
+            }
+          );
+
+          if (contributorsResponse.ok) {
+            const contributors = await contributorsResponse.json();
+            return { ...repo, contributors_count: contributors.length };
+          }
+        } catch {
+          return { ...repo, contributors_count: "N/A" };
+        }
+        return { ...repo, contributors_count: "N/A" };
+      })
+    );
+
+    setRepos(reposWithContributors);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const sortedRepos = [...repos].sort((a, b) => {
     if (sortOption === "name-asc") {
