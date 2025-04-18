@@ -1,8 +1,13 @@
-import React from "react";
+import React,{useState} from "react";
 import { motion } from "framer-motion";
-import { Star, GitFork, Eye, Users, Bug } from "lucide-react";
+import { Star, GitFork, Eye, Users, Bug, Image as ImageIcon } from "lucide-react";;
+import { DocumentTextIcon } from "@heroicons/react/24/outline";
+ 
+function RepoList({ repos, loading, onReadmeClick }) {
+  const RepoImage = ({ repo }) => {
+    const [imageError, setImageError] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
-function RepoList({ repos, loading }) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-6xl">
@@ -21,7 +26,39 @@ function RepoList({ repos, loading }) {
       </div>
     );
   }
+  
+    const fallbackImage = (
+      <div className="flex items-center justify-center w-full h-36 bg-gray-100 dark:bg-gray-700 rounded-lg">
+        <div className="text-center">
+          <ImageIcon className="w-8 h-8 mx-auto text-gray-400 dark:text-gray-500 mb-2" />
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {repo.name}
+          </span>
+        </div>
+      </div>
+    );
 
+    if (imageError) {
+      return fallbackImage;
+    }
+
+    return (
+      <>
+        {isLoading && (
+          <div className="absolute inset-0 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
+        )}
+        <img
+          src={`https://opengraph.githubassets.com/1/${repo.full_name}`}
+          alt={repo.name}
+          className={`rounded-lg w-full h-36 object-cover transition-opacity duration-300 ${
+            isLoading ? 'opacity-0' : 'opacity-100'
+          }`}
+          onError={() => setImageError(true)}
+          onLoad={() => setIsLoading(false)}
+        />
+      </>
+    );
+  };
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-6xl">
       {repos.map((repo) => (
@@ -33,12 +70,9 @@ function RepoList({ repos, loading }) {
           className="bg-white/70 dark:bg-gray-800/70 backdrop-blur p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200 dark:border-gray-700"
         >
           {/* Repo image */}
-          <img
-            src={`https://opengraph.githubassets.com/1/${repo.full_name}`}
-            alt={repo.name}
-            onError={(e) => (e.target.src = "https://via.placeholder.com/500")}
-            className="rounded-lg mb-4 w-full h-36 object-cover"
-          />
+          <div className="relative mb-4">
+            <RepoImage repo={repo} />
+          </div>
 
           <h2 className="text-xl font-bold mb-1 text-gray-800 dark:text-white">
             {repo.name}
@@ -98,7 +132,13 @@ function RepoList({ repos, loading }) {
             >
               View Repo
             </a>
-
+            <button
+              onClick={() => onReadmeClick(repo.owner.login, repo.name)}
+              className="px-4 py-2 rounded-full bg-gray-600 text-white text-sm hover:bg-gray-700 transition flex items-center gap-2"
+            >
+              <DocumentTextIcon className="h-4 w-4" />
+              README
+            </button>
             {/* Live Demo Button */}
             {repo.homepage && (
               <a

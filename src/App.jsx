@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import RepoList from "./components/RepoList";
 import ExportDropdown from "./components/ExportDropdown";
-import { MoonIcon, SunIcon,SearchIcon} from "@heroicons/react/solid";
+import { MoonIcon, SunIcon,MagnifyingGlassIcon} from "@heroicons/react/24/solid";
 import { jsPDF } from "jspdf";
 import { motion } from "framer-motion";
-
+import ReadmeModal from "./components/ReadmeModal";
 
 
 function App() {
@@ -19,6 +19,9 @@ function App() {
   const [submitted, setSubmitted] = useState(false);
   const [searchType, setSearchType] = useState("username"); // Add this new state
   const [repoSearch, setRepoSearch] = useState("");
+  const [selectedReadme, setSelectedReadme] = useState(null);
+  const [readmeContent, setReadmeContent] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const reposPerPage = 6;
   const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN;
 
@@ -186,7 +189,27 @@ function App() {
       setLoading(false);
     }
   };
-
+  // Add this after other async functions
+const fetchReadme = async (owner, repo) => {
+  try {
+    const response = await fetch(
+      `https://api.github.com/repos/${owner}/${repo}/readme`,
+      {
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github.raw",
+        },
+      }
+    );
+    if (!response.ok) throw new Error("README not found");
+    const content = await response.text();
+    setReadmeContent(content);
+    setIsModalOpen(true);
+  } catch (err) {
+    setReadmeContent("No README found for this repository.");
+    setIsModalOpen(true);
+  }
+};
   const sortedRepos = [...repos].sort((a, b) => {
     if (sortOption === "name-asc") return a.name.localeCompare(b.name);
     if (sortOption === "name-desc") return b.name.localeCompare(a.name);
@@ -270,9 +293,9 @@ const filteredRepos = sortedRepos.filter((repo) => {
     className="flex items-center space-x-4"
   >
     <div className="relative flex-1">
-      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-        <SearchIcon className="h-5 w-5" />
-      </span>
+    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+  <MagnifyingGlassIcon className="h-5 w-5" /> {/* Updated from SearchIcon */}
+</span>
       <input
         type="text"
         value={searchType === "username" ? username : repoSearch}
@@ -291,13 +314,10 @@ const filteredRepos = sortedRepos.filter((repo) => {
         className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
       />
     </div>
-    <button
-      type="submit"
-      className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition active:scale-95 shadow-md"
-    >
-      <SearchIcon className="w-5 h-5" />
-      <span>Search</span>
-    </button>
+    <button type="submit" className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition active:scale-95 shadow-md">
+  <MagnifyingGlassIcon className="w-5 h-5" /> {/* Updated from SearchIcon */}
+  <span>Search</span>
+</button>
   </form>
 </motion.div>
       {/* Display error message */}
@@ -359,9 +379,19 @@ const filteredRepos = sortedRepos.filter((repo) => {
           No repositories found for <span className="font-semibold">{username}</span>.
         </p>
       ) : (
-        <RepoList repos={currentRepos} loading={loading} />
+        <RepoList 
+          repos={currentRepos} 
+          loading={loading} 
+          onReadmeClick={fetchReadme}
+        />
       )}
-
+        {/* Add the ReadmeModal component */}
+      <ReadmeModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        content={readmeContent}
+        repoName={selectedReadme}
+      />
       {filteredRepos.length > 0 && !loading && (
         <motion.div
         initial={{ opacity: 0, y: 20 }}
