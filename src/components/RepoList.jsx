@@ -9,25 +9,6 @@ function RepoList({ repos, loading, onReadmeClick }) {
     const [imageError, setImageError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    if (loading) {
-      return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-6xl">
-          {[...Array(6)].map((_, idx) => (
-            <div
-              key={idx}
-              className="animate-pulse bg-white/70 dark:bg-gray-800/70 p-6 rounded-2xl shadow"
-            >
-              <div className="h-36 bg-gray-300 dark:bg-gray-700 rounded mb-4"></div>
-              <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mb-3"></div>
-              <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-full mb-2"></div>
-              <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-5/6 mb-2"></div>
-              <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded w-24"></div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
     const fallbackImage = (
       <div className="flex items-center justify-center w-full h-36 bg-gray-100 dark:bg-gray-700 rounded-lg">
         <div className="text-center">
@@ -69,6 +50,52 @@ function RepoList({ repos, loading, onReadmeClick }) {
     setSelectedRepo(repo);
     setIsVisualizationOpen(true);
   };
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full max-w-7xl">
+        {[...Array(6)].map((_, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2, delay: index * 0.1 }}
+            className="flex flex-col bg-white/70 dark:bg-gray-800/70 backdrop-blur p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 h-[550px]"
+          >
+            <div className="animate-pulse">
+              <div className="h-40 -mx-6 -mt-6 mb-6 bg-gray-200 dark:bg-gray-700 rounded-t-2xl" />
+              <div className="space-y-4">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-full w-3/4" />
+                <div className="space-y-2">
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full w-5/6" />
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full w-4/6" />
+                </div>
+                <div className="flex gap-2">
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-16" />
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-16" />
+                </div>
+                <div className="grid grid-cols-3 gap-3 mt-auto">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex flex-col items-center space-y-2">
+                      <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full" />
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full w-12" />
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-3 mt-6">
+                  <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-xl" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>
