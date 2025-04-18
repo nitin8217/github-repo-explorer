@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import RepoList from "./components/RepoList";
 import ExportDropdown from "./components/ExportDropdown";
-import { MoonIcon, SunIcon,MagnifyingGlassIcon} from "@heroicons/react/24/solid";
+import { MoonIcon, SunIcon, MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { jsPDF } from "jspdf";
 import { motion } from "framer-motion";
 import ReadmeModal from "./components/ReadmeModal";
+import { Octokit } from "@octokit/rest";
 
+const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN; 
 
 function App() {
   const [username, setUsername] = useState("");
@@ -15,18 +17,54 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem('darkMode');
+    return savedMode ? JSON.parse(savedMode) : false;
+  });
   const [submitted, setSubmitted] = useState(false);
   const [searchType, setSearchType] = useState("username"); // Add this new state
   const [repoSearch, setRepoSearch] = useState("");
   const [selectedReadme, setSelectedReadme] = useState(null);
   const [readmeContent, setReadmeContent] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [visualizationData, setVisualizationData] = useState(null);
+  const octokit = new Octokit({ auth: GITHUB_TOKEN });
   const reposPerPage = 6;
-  const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN;
+  
 
+  const fetchVisualizationData = async (owner, repo) => {
+    try {
+      const [languages, contributors, commits] = await Promise.all([
+        octokit.repos.listLanguages({ owner, repo }),
+        octokit.repos.listContributors({ owner, repo }),
+        octokit.repos.listCommits({ owner, repo })
+      ]);
+  
+      setVisualizationData({
+        languages: Object.entries(languages.data).map(([language, size]) => ({
+          language,
+          size
+        })),
+        contributors: contributors.data.map(c => ({
+          author: c.login,
+          commits: c.contributions
+        })),
+        commits: commits.data.map(c => ({
+          date: c.commit.author.date,
+          additions: c.stats?.additions || 0,
+          deletions: c.stats?.deletions || 0
+        }))
+      });
+    } catch (error) {
+      console.error('Error fetching visualization data:', error);
+    }
+  };
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
+    setDarkMode(prevMode => {
+      const newMode = !prevMode;
+      localStorage.setItem('darkMode', JSON.stringify(newMode));
+      return newMode;
+    });
   };
 
   useEffect(() => {
@@ -90,6 +128,83 @@ function App() {
     }
   };
 
+  const fetchRepoDetails = async (repo) => {
+    try {
+      const [languages, commits, engagementData] = await Promise.all([
+        octokit.repos.listLanguages({
+          owner: repo.owner.login,
+          repo: repo.name,
+        }),
+        octokit.repos.listCommits({
+          owner: repo.owner.login,
+          repo: repo.name,
+          per_page: 100
+        }),
+        // Get engagement metrics
+        octokit.repos.getParticipationStats({
+          owner: repo.owner.login,
+          repo: repo.name,
+        })
+      ]);
+
+      // Calculate impact score
+      const impactScore = calculateImpactScore(repo, engagementData.data);
+
+      return {
+        ...repo,
+        languages: languages.data,
+        commits: commits.data,
+        impact: {
+          score: impactScore,
+          metrics: {
+            stars: repo.stargazers_count,
+            forks: repo.forks_count,
+            watchers: repo.watchers_count,
+            issues: repo.open_issues_count,
+            engagement: engagementData.data?.all || []
+          }
+        }
+      };
+    } catch (error) {
+      console.error(`Error fetching details for ${repo.name}:`, error);
+      return repo;
+    }
+  };
+
+  // Add the impact score calculation function
+  const calculateImpactScore = (repo, engagement) => {
+    const weights = {
+      stars: 0.4,
+      forks: 0.3,
+      watchers: 0.2,
+      engagement: 0.1
+    };
+
+    // Normalize values between 0 and 1
+    const maxStars = 1000; // Adjust these thresholds as needed
+    const maxForks = 500;
+    const maxWatchers = 200;
+
+    const normalizedStars = Math.min(repo.stargazers_count / maxStars, 1);
+    const normalizedForks = Math.min(repo.forks_count / maxForks, 1);
+    const normalizedWatchers = Math.min(repo.watchers_count / maxWatchers, 1);
+    
+    // Calculate engagement score from participation data
+    const engagementScore = engagement?.all 
+      ? engagement.all.reduce((sum, count) => sum + count, 0) / (engagement.all.length * 100)
+      : 0;
+
+    // Calculate weighted score
+    const score = (
+      normalizedStars * weights.stars +
+      normalizedForks * weights.forks +
+      normalizedWatchers * weights.watchers +
+      engagementScore * weights.engagement
+    ) * 100;
+
+    return Math.round(score);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); // Reset error before the new search
@@ -136,13 +251,17 @@ function App() {
           return { ...repo, contributors_count: "N/A" };
         })
       );
-      setRepos(reposWithContributors);
+      const repositories = await Promise.all(
+        reposWithContributors.map(fetchRepoDetails)
+      );
+      setRepos(repositories);
     } catch (err) {
       setError(`Error: ${err.message}`); // Set the error message here
     } finally {
       setLoading(false);
     }
   };
+
   const handleRepoSearch = async () => {
     setError("");
     setRepos([]);
@@ -182,34 +301,38 @@ function App() {
           return { ...repo, contributors_count: "N/A" };
         })
       );
-      setRepos(reposWithContributors);
+      const repositories = await Promise.all(
+        reposWithContributors.map(fetchRepoDetails)
+      );
+      setRepos(repositories);
     } catch (err) {
       setError(`Error: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
-  // Add this after other async functions
-const fetchReadme = async (owner, repo) => {
-  try {
-    const response = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/readme`,
-      {
-        headers: {
-          Authorization: `token ${GITHUB_TOKEN}`,
-          Accept: "application/vnd.github.raw",
-        },
-      }
-    );
-    if (!response.ok) throw new Error("README not found");
-    const content = await response.text();
-    setReadmeContent(content);
-    setIsModalOpen(true);
-  } catch (err) {
-    setReadmeContent("No README found for this repository.");
-    setIsModalOpen(true);
-  }
-};
+
+  const fetchReadme = async (owner, repo) => {
+    try {
+      const response = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/readme`,
+        {
+          headers: {
+            Authorization: `token ${GITHUB_TOKEN}`,
+            Accept: "application/vnd.github.raw",
+          },
+        }
+      );
+      if (!response.ok) throw new Error("README not found");
+      const content = await response.text();
+      setReadmeContent(content);
+      setIsModalOpen(true);
+    } catch (err) {
+      setReadmeContent("No README found for this repository.");
+      setIsModalOpen(true);
+    }
+  };
+
   const sortedRepos = [...repos].sort((a, b) => {
     if (sortOption === "name-asc") return a.name.localeCompare(b.name);
     if (sortOption === "name-desc") return b.name.localeCompare(a.name);
@@ -218,20 +341,18 @@ const fetchReadme = async (owner, repo) => {
     return 0;
   });
 
-  // Replace the existing filteredRepos constant with this:
-const filteredRepos = sortedRepos.filter((repo) => {
-  const query = searchQuery.toLowerCase();
-  if (searchType === "username") {
-    // For username search, filter by repository name only
-    return repo.name.toLowerCase().includes(query);
-  } else {
-    // For repository search, filter by repository name or owner's username
-    return (
-      repo.name.toLowerCase().includes(query) || 
-      repo.owner.login.toLowerCase().includes(query)
-    );
-  }
-});
+  const filteredRepos = sortedRepos.filter((repo) => {
+    const query = searchQuery.toLowerCase();
+    if (searchType === "username") {
+      return repo.name.toLowerCase().includes(query);
+    } else {
+      return (
+        repo.name.toLowerCase().includes(query) || 
+        repo.owner.login.toLowerCase().includes(query)
+      );
+    }
+  });
+
   const indexOfLastRepo = currentPage * reposPerPage;
   const indexOfFirstRepo = indexOfLastRepo - reposPerPage;
   const currentRepos = filteredRepos.slice(indexOfFirstRepo, indexOfLastRepo);
@@ -251,83 +372,81 @@ const filteredRepos = sortedRepos.filter((repo) => {
         🚀 GitHub Repo Explorer
       </h1>
 
-    {/* Search Form */}
-    <motion.div
-  initial={{ opacity: 0, y: -20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.6 }}
-  className="w-full max-w-2xl bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl mb-8"
->
-  <div className="mb-4 flex gap-4">
-    <button
-      onClick={() => setSearchType("username")}
-      className={`px-4 py-2 rounded-lg ${
-        searchType === "username"
-          ? "bg-blue-500 text-white"
-          : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
-      }`}
-    >
-      Search by Username
-    </button>
-    <button
-      onClick={() => setSearchType("repository")}
-      className={`px-4 py-2 rounded-lg ${
-        searchType === "repository"
-          ? "bg-blue-500 text-white"
-          : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
-      }`}
-    >
-      Search by Repository
-    </button>
-  </div>
-  
-  <form
-    onSubmit={(e) => {
-      e.preventDefault();
-      if (searchType === "username") {
-        handleSubmit(e);
-      } else {
-        handleRepoSearch();
-      }
-    }}
-    className="flex items-center space-x-4"
-  >
-    <div className="relative flex-1">
-    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-  <MagnifyingGlassIcon className="h-5 w-5" /> {/* Updated from SearchIcon */}
-</span>
-      <input
-        type="text"
-        value={searchType === "username" ? username : repoSearch}
-        onChange={(e) => {
-          if (searchType === "username") {
-            setUsername(e.target.value);
-          } else {
-            setRepoSearch(e.target.value);
-          }
-        }}
-        placeholder={
-          searchType === "username"
-            ? "Enter GitHub username..."
-            : "Search repositories..."
-        }
-        className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
-      />
-    </div>
-    <button type="submit" className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition active:scale-95 shadow-md">
-  <MagnifyingGlassIcon className="w-5 h-5" /> {/* Updated from SearchIcon */}
-  <span>Search</span>
-</button>
-  </form>
-</motion.div>
-      {/* Display error message */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="w-full max-w-2xl bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl mb-8"
+      >
+        <div className="mb-4 flex gap-4">
+          <button
+            onClick={() => setSearchType("username")}
+            className={`px-4 py-2 rounded-lg ${
+              searchType === "username"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+            }`}
+          >
+            Search by Username
+          </button>
+          <button
+            onClick={() => setSearchType("repository")}
+            className={`px-4 py-2 rounded-lg ${
+              searchType === "repository"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+            }`}
+          >
+            Search by Repository
+          </button>
+        </div>
+        
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (searchType === "username") {
+              handleSubmit(e);
+            } else {
+              handleRepoSearch();
+            }
+          }}
+          className="flex items-center space-x-4"
+        >
+          <div className="relative flex-1">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+              <MagnifyingGlassIcon className="h-5 w-5" />
+            </span>
+            <input
+              type="text"
+              value={searchType === "username" ? username : repoSearch}
+              onChange={(e) => {
+                if (searchType === "username") {
+                  setUsername(e.target.value);
+                } else {
+                  setRepoSearch(e.target.value);
+                }
+              }}
+              placeholder={
+                searchType === "username"
+                  ? "Enter GitHub username..."
+                  : "Search repositories..."
+              }
+              className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+            />
+          </div>
+          <button type="submit" className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition active:scale-95 shadow-md">
+            <MagnifyingGlassIcon className="w-5 h-5" />
+            <span>Search</span>
+          </button>
+        </form>
+      </motion.div>
+
       {error && (
         <p className="text-red-500 text-lg mb-4">
           {error}
         </p>
       )}
 
-      {/* Sort & Filter */}
       {repos.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -362,16 +481,17 @@ const filteredRepos = sortedRepos.filter((repo) => {
         </motion.div>
       )}
 
-{repos.length > 0 && (
-  <motion.div
-    initial={{ opacity: 0, x: 20, y: -20 }}
-    animate={{ opacity: 1, x: 0, y: 0 }}
-    transition={{ duration: 0.5 }}
-    className="fixed top-6 right-6 z-50"
-  >
-    <ExportDropdown onExport={exportData} />
-  </motion.div>
-)}
+      {repos.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, x: 20, y: -20 }}
+          animate={{ opacity: 1, x: 0, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="fixed top-6 right-6 z-50"
+        >
+          <ExportDropdown onExport={exportData} />
+        </motion.div>
+      )}
+
       {loading ? (
         <RepoList repos={[]} loading={true} />
       ) : submitted && repos.length === 0 && !error ? (
@@ -385,57 +505,57 @@ const filteredRepos = sortedRepos.filter((repo) => {
           onReadmeClick={fetchReadme}
         />
       )}
-        {/* Add the ReadmeModal component */}
+
       <ReadmeModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         content={readmeContent}
         repoName={selectedReadme}
       />
+
       {filteredRepos.length > 0 && !loading && (
         <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex items-center justify-center space-x-2 mt-10"
-      >
-        <button
-          onClick={handlePrevPage}
-          disabled={currentPage === 1}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex items-center justify-center space-x-2 mt-10"
         >
-          Prev
-        </button>
-      
-        {[...Array(totalPages)].map((_, index) => {
-          const pageNumber = index + 1;
-          return (
-            <button
-              key={pageNumber}
-              onClick={() => setCurrentPage(pageNumber)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium border ${
-                currentPage === pageNumber
-                  ? "bg-blue-500 text-white border-blue-500"
-                  : "border-gray-300 text-gray-700 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600"
-              }`}
-            >
-              {pageNumber}
-            </button>
-          );
-        })}
-      
-        <button
-          onClick={handleNextPage}
-          disabled={currentPage === totalPages}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Next
-        </button>
-      </motion.div>
-      
+          <button
+            onClick={handlePrevPage}
+            disabled={currentPage === 1}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Prev
+          </button>
+        
+          {[...Array(totalPages)].map((_, index) => {
+            const pageNumber = index + 1;
+            return (
+              <button
+                key={pageNumber}
+                onClick={() => setCurrentPage(pageNumber)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium border ${
+                  currentPage === pageNumber
+                    ? "bg-blue-500 text-white border-blue-500"
+                    : "border-gray-300 text-gray-700 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600"
+                }`}
+              >
+                {pageNumber}
+              </button>
+            );
+          })}
+        
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </motion.div>
       )}
 
-      <button
+<button
         onClick={toggleDarkMode}
         className="fixed bottom-6 right-6 p-3 bg-gray-800 text-white rounded-full shadow-md hover:bg-gray-700 focus:outline-none transition"
       >
