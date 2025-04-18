@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Modal from 'react-modal';
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import RepoVisualizations from './RepoVisualizations';
+import AnalyticsPanel from './AnalyticsPanel';
 
 Modal.setAppElement('#root');
 
-const VisualizationModal = ({ isOpen, onClose, repo }) => {
+const VisualizationModal = ({ isOpen, onClose, repo, octokit }) => {
+  const [activeTab, setActiveTab] = useState('visualizations');
+
   return (
     <Modal
       isOpen={isOpen}
@@ -17,9 +20,24 @@ const VisualizationModal = ({ isOpen, onClose, repo }) => {
     >
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {repo?.name} - Repository Analytics
-          </h2>
+          <div className="flex gap-4">
+            <button
+              onClick={() => setActiveTab('visualizations')}
+              className={`px-4 py-2 rounded-lg ${
+                activeTab === 'visualizations' ? 'bg-blue-500 text-white' : 'bg-gray-100'
+              }`}
+            >
+              Visualizations
+            </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-4 py-2 rounded-lg ${
+                activeTab === 'analytics' ? 'bg-blue-500 text-white' : 'bg-gray-100'
+              }`}
+            >
+              Analytics
+            </button>
+          </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
@@ -28,7 +46,11 @@ const VisualizationModal = ({ isOpen, onClose, repo }) => {
           </button>
         </div>
         
-        <RepoVisualizations repo={repo} />
+        {activeTab === 'visualizations' ? (
+          <RepoVisualizations repo={repo} />
+        ) : (
+          <AnalyticsPanel repo={repo} octokit={octokit} />
+        )}
       </div>
     </Modal>
   );

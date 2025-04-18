@@ -10,6 +10,10 @@ import { Octokit } from "@octokit/rest";
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN; 
 
 function App() {
+  const [octokit] = useState(() => new Octokit({
+    auth: import.meta.env.VITE_GITHUB_TOKEN
+  }));
+
   const [username, setUsername] = useState("");
   const [repos, setRepos] = useState([]);
   const [error, setError] = useState(""); // Error state
@@ -28,7 +32,6 @@ function App() {
   const [readmeContent, setReadmeContent] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [visualizationData, setVisualizationData] = useState(null);
-  const octokit = new Octokit({ auth: GITHUB_TOKEN });
   const reposPerPage = 6;
   
 
@@ -503,6 +506,7 @@ function App() {
           repos={currentRepos} 
           loading={loading} 
           onReadmeClick={fetchReadme}
+          octokit={octokit}
         />
       )}
 

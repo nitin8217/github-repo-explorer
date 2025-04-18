@@ -4,7 +4,7 @@ import { Star, GitFork, Eye, Users, Bug, Image as ImageIcon, ExternalLink } from
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
 import VisualizationModal from './VisualizationModal';
 
-function RepoList({ repos, loading, onReadmeClick }) {
+function RepoList({ repos, loading, onReadmeClick, octokit }) {
   const RepoImage = ({ repo }) => {
     const [imageError, setImageError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -221,6 +221,7 @@ function RepoList({ repos, loading, onReadmeClick }) {
         isOpen={isVisualizationOpen}
         onClose={() => setIsVisualizationOpen(false)}
         repo={selectedRepo}
+        octokit={octokit}
       />
     </>
   );
