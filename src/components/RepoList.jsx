@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Star, GitFork, Eye, Users, Bug, Image as ImageIcon, ExternalLink } from "lucide-react";
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
@@ -48,13 +48,30 @@ function RepoList({ repos, loading, onReadmeClick, octokit }) {
   const [selectedRepo, setSelectedRepo] = useState(null);
   const [selectedLanguages, setSelectedLanguages] = useState([]);
 
-  const handleVisualizationToggle = (repo) => {
-    setSelectedRepo(repo);
-    setIsVisualizationOpen(true);
-  };
+  const handleVisualizationToggle = useCallback(async (repo) => {
+    try {
+      // Fetch additional data if needed before showing visualization
+      const [languages, commits] = await Promise.all([
+        octokit.repos.listLanguages({ owner: repo.owner.login, repo: repo.name }),
+        octokit.repos.listCommits({ owner: repo.owner.login, repo: repo.name })
+      ]);
 
-  
+      setSelectedRepo({
+        ...repo,
+        languages: languages.data,
+        commits: commits.data
+      });
+      setIsVisualizationOpen(true);
+    } catch (error) {
+      console.error('Error fetching repo data:', error);
+      // Show modal anyway with basic data
+      setSelectedRepo(repo);
+      setIsVisualizationOpen(true);
+    }
+  }, [octokit]);
 
+  console.log('Selected Repo:', selectedRepo);
+  console.log('Modal Open:', isVisualizationOpen);
 
   const filteredRepos = selectedLanguages.length > 0
     ? repos.filter(repo => repo.language && selectedLanguages.includes(repo.language))
@@ -229,12 +246,17 @@ function RepoList({ repos, loading, onReadmeClick, octokit }) {
         ))}
       </div>
 
-      <VisualizationModal
-        isOpen={isVisualizationOpen}
-        onClose={() => setIsVisualizationOpen(false)}
-        repo={selectedRepo}
-        octokit={octokit}
-      />
+      {selectedRepo && (
+        <VisualizationModal
+          isOpen={isVisualizationOpen}
+          onClose={() => {
+            setIsVisualizationOpen(false);
+            setSelectedRepo(null);
+          }}
+          repo={selectedRepo}
+          octokit={octokit}
+        />
+      )}
     </>
   );
 }
