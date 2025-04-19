@@ -50,15 +50,17 @@ function App() {
     searchType
   );
 
-  // Filter and sort the repos
+  // Update the filteredAndSortedRepos memo
   const filteredAndSortedRepos = useMemo(() => {
     let filtered = [...allRepos];
 
-    // Filter by search query
+    // Filter by search query - check both repo name and owner username
     if (searchQuery) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(repo =>
-        repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (repo.description && repo.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        repo.name.toLowerCase().includes(query) ||
+        (repo.description && repo.description.toLowerCase().includes(query)) ||
+        (repo.owner && repo.owner.login.toLowerCase().includes(query))
       );
     }
 
@@ -350,8 +352,10 @@ function App() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Filter repositories..."
-                      className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:text-white"
+                      placeholder="Filter by repository name or owner..."
+                      className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 dark:border-gray-600 
+                        rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 
+                        dark:bg-gray-900 dark:text-white"
                     />
                   </div>
                   <select
