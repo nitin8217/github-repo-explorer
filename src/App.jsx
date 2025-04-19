@@ -218,46 +218,63 @@ function App() {
   }, [data]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-5xl font-extrabold mb-8 text-center text-gray-800 dark:text-white">
-          🚀 GitHub Repo Explorer
-        </h1>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Enhanced Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
+          <div className="inline-block mb-6">
+            <div className="flex items-center justify-center p-3 bg-blue-500 rounded-2xl shadow-lg transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-5xl font-black text-gray-800 dark:text-white mb-4 tracking-tight">
+            GitHub Repo Explorer
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 text-lg max-w-2xl mx-auto">
+            Discover and explore GitHub repositories with ease
+          </p>
+        </motion.div>
 
-        {/* Search Section - Centered */}
-        <div className="max-w-2xl mx-auto mb-8">
+        {/* Enhanced Search Section */}
+        <div className="max-w-2xl mx-auto mb-12">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="w-full bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl"
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50"
           >
-            <div className="mb-4 flex gap-4">
+            <div className="mb-6 grid grid-cols-2 gap-3">
               <button
                 onClick={() => setSearchType("username")}
-                className={`px-4 py-2 rounded-lg ${
+                className={`px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
                   searchType === "username"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                    ? "bg-blue-500 text-white shadow-md"
+                    : "bg-gray-100 text-gray-600 dark:bg-gray-700/50 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
                 Search by Username
               </button>
               <button
                 onClick={() => setSearchType("repository")}
-                className={`px-4 py-2 rounded-lg ${
+                className={`px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
                   searchType === "repository"
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                    ? "bg-blue-500 text-white shadow-md"
+                    : "bg-gray-100 text-gray-600 dark:bg-gray-700/50 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
                 Search by Repository
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="flex items-center space-x-4">
-              <div className="relative flex-1">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
                   <MagnifyingGlassIcon className="h-5 w-5" />
                 </span>
                 <input
@@ -269,7 +286,7 @@ function App() {
                       setUsername(value);
                     } else {
                       setRepoSearch(value);
-                      if (value.length >= 3) { // Only search if there are 3 or more characters
+                      if (value.length >= 3) {
                         refetchInfinite();
                       } else {
                         setAllRepos([]);
@@ -281,21 +298,40 @@ function App() {
                       ? "Enter GitHub username..."
                       : "Search repositories..."
                   }
-                  className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-12 pr-4 py-4 
+                    bg-white dark:bg-gray-900 text-gray-900 dark:text-white
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                    placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
-              <button type="submit" className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition active:scale-95 shadow-md">
-                <MagnifyingGlassIcon className="w-5 h-5" />
-                <span>Search</span>
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700
+                  text-white px-6 py-4 rounded-xl font-semibold transition-all duration-200
+                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                  active:scale-[0.98] shadow-lg"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <MagnifyingGlassIcon className="w-5 h-5" />
+                  <span>Search GitHub</span>
+                </span>
               </button>
             </form>
           </motion.div>
         </div>
 
+        {/* Error message with improved styling */}
         {error && (
-          <p className="text-red-500 text-lg mb-4 text-center">
-            {error}
-          </p>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto mb-8"
+          >
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 
+              rounded-xl p-4 text-red-600 dark:text-red-400 text-center font-medium">
+              {error}
+            </div>
+          </motion.div>
         )}
 
         {/* Filter Section - Centered */}
