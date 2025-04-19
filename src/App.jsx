@@ -6,6 +6,7 @@ import { jsPDF } from "jspdf";
 import { motion } from "framer-motion";
 import ReadmeModal from "./components/ReadmeModal";
 import { Octokit } from "@octokit/rest";
+import LanguageCloud from './components/LanguageCloud';
 
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN; 
 
@@ -32,6 +33,8 @@ function App() {
   const [readmeContent, setReadmeContent] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [visualizationData, setVisualizationData] = useState(null);
+  const [selectedLanguages, setSelectedLanguages] = useState([]);
+  const [isLanguageCloudOpen, setIsLanguageCloudOpen] = useState(false);
   const reposPerPage = 6;
   
 
@@ -336,6 +339,26 @@ function App() {
     }
   };
 
+  const getAllLanguages = () => {
+    const languages = {};
+    repos.forEach(repo => {
+      if (repo.language) {
+        languages[repo.language] = (languages[repo.language] || 0) + 1;
+      }
+    });
+    return languages;
+  };
+
+  const handleLanguageSelect = (language) => {
+    if (language === null) {
+      setSelectedLanguages([]);
+    } else if (selectedLanguages.includes(language)) {
+      setSelectedLanguages(selectedLanguages.filter(l => l !== language));
+    } else {
+      setSelectedLanguages([...selectedLanguages, language]);
+    }
+  };
+
   const sortedRepos = [...repos].sort((a, b) => {
     if (sortOption === "name-asc") return a.name.localeCompare(b.name);
     if (sortOption === "name-desc") return b.name.localeCompare(a.name);
@@ -346,14 +369,10 @@ function App() {
 
   const filteredRepos = sortedRepos.filter((repo) => {
     const query = searchQuery.toLowerCase();
-    if (searchType === "username") {
-      return repo.name.toLowerCase().includes(query);
-    } else {
-      return (
-        repo.name.toLowerCase().includes(query) || 
-        repo.owner.login.toLowerCase().includes(query)
-      );
-    }
+    const matchesSearch = repo.name.toLowerCase().includes(query);
+    const matchesLanguage = selectedLanguages.length === 0 || 
+      (repo.language && selectedLanguages.includes(repo.language));
+    return matchesSearch && matchesLanguage;
   });
 
   const indexOfLastRepo = currentPage * reposPerPage;
@@ -455,31 +474,80 @@ function App() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="w-full max-w-2xl bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0 mb-6"
+          className="w-full max-w-2xl"
         >
-          <select
-            value={sortOption}
-            onChange={(e) => {
-              setSortOption(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="flex-1 border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
-          >
-            <option value="name-asc">Name (A-Z)</option>
-            <option value="name-desc">Name (Z-A)</option>
-            <option value="stars-desc">Stars (High to Low)</option>
-            <option value="stars-asc">Stars (Low to High)</option>
-          </select>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg space-y-4">
+            {/* Section Title and Search */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 relative">
+                <MagnifyingGlassIcon className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Filter repositories..."
+                  className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:text-white"
+                />
+              </div>
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                className="text-sm px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:text-white"
+              >
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+                <option value="stars-desc">Stars ↓</option>
+                <option value="stars-asc">Stars ↑</option>
+              </select>
+              <button
+                onClick={() => setIsLanguageCloudOpen(true)}
+                className="text-sm px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center gap-2"
+              >
+                Languages
+                {selectedLanguages.length > 0 && (
+                  <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-xs">
+                    {selectedLanguages.length}
+                  </span>
+                )}
+              </button>
+            </div>
 
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            placeholder="Search repositories..."
-            className="flex-1 border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+            {/* Active Filters */}
+            {selectedLanguages.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                  Filters:
+                </span>
+                {selectedLanguages.map(lang => (
+                  <span
+                    key={lang}
+                    className="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs"
+                  >
+                    {lang}
+                    <button
+                      onClick={() => handleLanguageSelect(lang)}
+                      className="ml-1 hover:text-blue-800 dark:hover:text-blue-200"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+                <button
+                  onClick={() => setSelectedLanguages([])}
+                  className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 ml-auto"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+
+          <LanguageCloud
+            isOpen={isLanguageCloudOpen}
+            onClose={() => setIsLanguageCloudOpen(false)}
+            languages={getAllLanguages()}
+            selectedLanguages={selectedLanguages}
+            onLanguageSelect={handleLanguageSelect}
           />
         </motion.div>
       )}
@@ -559,7 +627,7 @@ function App() {
         </motion.div>
       )}
 
-<button
+      <button
         onClick={toggleDarkMode}
         className="fixed bottom-6 right-6 p-3 bg-gray-800 text-white rounded-full shadow-md hover:bg-gray-700 focus:outline-none transition"
       >

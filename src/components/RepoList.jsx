@@ -4,6 +4,7 @@ import { Star, GitFork, Eye, Users, Bug, Image as ImageIcon, ExternalLink } from
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
 import VisualizationModal from './VisualizationModal';
 
+
 function RepoList({ repos, loading, onReadmeClick, octokit }) {
   const RepoImage = ({ repo }) => {
     const [imageError, setImageError] = useState(false);
@@ -42,14 +43,22 @@ function RepoList({ repos, loading, onReadmeClick, octokit }) {
     );
   };
 
-  const [activeVisualization, setActiveVisualization] = useState(null);
+  
   const [isVisualizationOpen, setIsVisualizationOpen] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState(null);
+  const [selectedLanguages, setSelectedLanguages] = useState([]);
 
   const handleVisualizationToggle = (repo) => {
     setSelectedRepo(repo);
     setIsVisualizationOpen(true);
   };
+
+  
+
+
+  const filteredRepos = selectedLanguages.length > 0
+    ? repos.filter(repo => repo.language && selectedLanguages.includes(repo.language))
+    : repos;
 
   if (loading) {
     return (
@@ -99,8 +108,11 @@ function RepoList({ repos, loading, onReadmeClick, octokit }) {
 
   return (
     <>
+      
+
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full max-w-7xl">
-        {repos.map((repo, index) => (
+        {filteredRepos.map((repo, index) => (
           <motion.div
             key={repo.id}
             initial={{ opacity: 0, y: 20 }}
