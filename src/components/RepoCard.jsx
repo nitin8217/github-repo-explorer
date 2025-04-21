@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Star, GitFork, Eye, Users, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { Star, GitFork, Eye, Users, Image as ImageIcon, ExternalLink, Sparkles } from "lucide-react";
 import { DocumentTextIcon } from "@heroicons/react/24/outline";
+import RepoInsights from './RepoInsights';
 
 const RepoImage = ({ repo }) => {
   const [imageError, setImageError] = useState(false);
@@ -39,6 +40,8 @@ const RepoImage = ({ repo }) => {
 };
 
 const RepoCard = ({ repo, onReadmeClick, onVisualizationClick }) => {
+  const [showInsights, setShowInsights] = useState(false);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -52,9 +55,18 @@ const RepoCard = ({ repo, onReadmeClick, onVisualizationClick }) => {
       <div className="relative h-40 -mx-6 -mt-6 mb-6 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/80 z-10 rounded-t-2xl" />
         <RepoImage repo={repo} />
-        <h2 className="absolute bottom-4 left-6 right-6 text-xl font-bold text-white z-20 line-clamp-1">
-          {repo.name}
-        </h2>
+        <div className="absolute bottom-4 left-6 right-6 z-20 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white line-clamp-1">
+            {repo.name}
+          </h2>
+          <button
+            onClick={() => setShowInsights(true)}
+            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-colors"
+            title="View AI Insights"
+          >
+            <Sparkles className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col flex-grow">
@@ -129,16 +141,16 @@ const RepoCard = ({ repo, onReadmeClick, onVisualizationClick }) => {
               href={repo.html_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-800 text-white text-sm hover:bg-gray-900 transition"
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-800 text-white text-sm hover:bg-gray-900 transition-colors"
             >
               <ExternalLink className="w-4 h-4" />
               View Repo
             </a>
             <button
               onClick={() => onReadmeClick(repo.owner.login, repo.name)}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-600 text-white text-sm hover:bg-gray-700 transition"
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
             >
-              <DocumentTextIcon className="h-4 w-4" />
+              <DocumentTextIcon className="h-4 w-4 text-gray-600 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300" />
               README
             </button>
           </div>
@@ -148,14 +160,39 @@ const RepoCard = ({ repo, onReadmeClick, onVisualizationClick }) => {
               href={repo.homepage}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm hover:from-blue-600 hover:to-blue-700 transition"
+              className="group relative flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl 
+                bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600
+                text-white text-sm font-medium shadow-lg hover:shadow-xl
+                transition-all duration-300 overflow-hidden"
             >
-              <span className="text-lg">🚀</span>
-              Live Demo
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 
+                group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10" />
+              <div className="relative flex items-center gap-2">
+                <svg 
+                  className="w-4 h-4 animate-pulse" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path 
+                    d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" 
+                    fill="currentColor"
+                  />
+                </svg>
+                <span>Live Demo</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 transition-opacity" />
+              </div>
             </a>
           )}
         </div>
       </div>
+
+      <RepoInsights
+        repo={repo}
+        isOpen={showInsights}
+        onClose={() => setShowInsights(false)}
+      />
     </motion.div>
   );
 };
