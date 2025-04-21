@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import RepoList from "./components/RepoList";
-import { MoonIcon, SunIcon, MagnifyingGlassIcon } from "@heroicons/react/24/solid";
+import {  MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { jsPDF } from "jspdf";
+import autoTable from 'jspdf-autotable';  // Change this import
 import { motion } from "framer-motion";
 import ReadmeModal from "./components/ReadmeModal";
 import { Octokit } from "@octokit/rest";
@@ -127,24 +128,90 @@ function App() {
       URL.revokeObjectURL(url);
     } else if (format === "pdf") {
       const doc = new jsPDF();
+      
+      // Add title and styling
+      doc.setFontSize(20);
+      doc.setTextColor(44, 62, 80);
+      doc.text("GitHub Repository Report", 14, 20);
+      
+      // Add metadata
       doc.setFontSize(12);
-      doc.text("Filtered GitHub Repositories", 10, 10);
-      const headers = ["#", "Name", "Stars", "Forks", "Language", "URL"];
-      let y = 20;
-      doc.text(headers.join(" | "), 10, y);
-      filteredAndSortedRepos.forEach((repo, index) => {
-        y += 10;
-        const row = [
-          index + 1,
+      doc.setTextColor(127, 140, 141);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+      doc.text(`Username: ${username || 'Repository Search'}`, 14, 37);
+      doc.text(`Total Repositories: ${filteredAndSortedRepos.length}`, 14, 44);
+
+      // Generate table with URL
+      autoTable(doc, {
+        startY: 55,
+        head: [['Repository', 'Language', 'Stars', 'Forks', 'Last Updated', 'URL']],
+        body: filteredAndSortedRepos.map(repo => [
           repo.name,
-          repo.stargazers_count,
-          repo.forks_count,
-          repo.language || "N/A",
-          repo.html_url,
-        ];
-        doc.text(row.join(" | "), 10, y);
+          repo.language || 'N/A',
+          repo.stargazers_count.toLocaleString(),
+          repo.forks_count.toLocaleString(),
+          new Date(repo.updated_at).toLocaleDateString(),
+          repo.html_url
+        ]),
+        styles: {
+          fontSize: 10,
+          cellPadding: 3,
+        },
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: 255,
+          fontSize: 11,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        alternateRowStyles: {
+          fillColor: [245, 247, 250]
+        },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 20, halign: 'center' },
+          3: { cellWidth: 20, halign: 'center' },
+          4: { cellWidth: 30, halign: 'center' },
+          5: { 
+            cellWidth: 'auto',
+            textColor: [41, 128, 185],
+            fontStyle: 'bold',
+            underline: true
+          }
+        },
+        didParseCell: function(data) {
+          // Make URLs clickable
+          if (data.column.index === 5) {
+            data.cell.link = data.cell.text;
+          }
+        },
+        margin: { top: 55, left: 14, right: 14 },
+        didDrawPage: (data) => {
+          // Add footer
+          doc.setFontSize(10);
+          doc.setTextColor(127, 140, 141);
+          doc.text(
+            `Page ${data.pageNumber}`,
+            data.settings.margin.left,
+            doc.internal.pageSize.height - 10
+          );
+          
+          // Add watermark
+          doc.text(
+            'Generated with GitHub Repo Explorer',
+            doc.internal.pageSize.width - data.settings.margin.right,
+            doc.internal.pageSize.height - 10,
+            { align: 'right' }
+          );
+        }
       });
-      doc.save(`${username}_filtered_repositories.pdf`);
+
+      // Save the PDF
+      const filename = username 
+        ? `${username}_repositories.pdf`
+        : 'github_repositories.pdf';
+      doc.save(filename);
     }
   };
 
@@ -358,26 +425,71 @@ function App() {
                         dark:bg-gray-900 dark:text-white"
                     />
                   </div>
-                  <select
-                    value={sortOption}
-                    onChange={(e) => setSortOption(e.target.value)}
-                    className="text-sm px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-900 dark:text-white"
-                  >
-                    <option value="name-asc">Name (A-Z)</option>
-                    <option value="name-desc">Name (Z-A)</option>
-                    <option value="stars-desc">Stars ↓</option>
-                    <option value="stars-asc">Stars ↑</option>
-                  </select>
+                  <div className="relative group">
+                    <select
+                      value={sortOption}
+                      onChange={(e) => setSortOption(e.target.value)}
+                      className="appearance-none relative w-full text-sm pl-4 pr-10 py-2.5 rounded-xl
+                        bg-gradient-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900/50
+                        border border-gray-200 dark:border-gray-700
+                        text-gray-700 dark:text-gray-200
+                        shadow-sm hover:shadow-md
+                        transition-all duration-200
+                        cursor-pointer
+                        focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-500/50
+                        group-hover:border-blue-500/50 dark:group-hover:border-blue-500/50
+                        [&>option]:dark:bg-gray-900"
+                    >
+                      <option value="name-asc" className="py-2 dark:text-gray-200">Name (A-Z)</option>
+                      <option value="name-desc" className="py-2 dark:text-gray-200">Name (Z-A)</option>
+                      <option value="stars-desc" className="py-2 dark:text-gray-200">Most Stars ⭐</option>
+                      <option value="stars-asc" className="py-2 dark:text-gray-200">Least Stars ⭐</option>
+                    </select>
+                    
+                    {/* Custom arrow indicator */}
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg 
+                        className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors duration-200" 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        viewBox="0 0 20 20" 
+                        fill="currentColor"
+                      >
+                        <path 
+                          fillRule="evenodd" 
+                          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" 
+                          clipRule="evenodd" 
+                        />
+                      </svg>
+                    </div>
+                    
+                    {/* Subtle gradient overlay */}
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/0 via-blue-500/0 to-blue-500/0 opacity-0 
+                      group-hover:opacity-5 dark:group-hover:opacity-10 pointer-events-none transition-opacity duration-200" 
+                    />
+                  </div>
                   <button
                     onClick={() => setIsLanguageCloudOpen(true)}
-                    className="text-sm px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center gap-2"
+                    className="relative group px-4 py-1.5 rounded-xl overflow-hidden transition-all duration-300"
                   >
-                    Languages
-                    {selectedLanguages.length > 0 && (
-                      <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-xs">
-                        {selectedLanguages.length}
+                    {/* Background layers */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.15] mix-blend-soft-light" />
+                    
+                    {/* Content */}
+                    <div className="relative flex items-center gap-2">
+                      <span className="text-sm font-medium text-white group-hover:translate-x-0.5 transition-transform duration-300">
+                        Languages
                       </span>
-                    )}
+                      {selectedLanguages.length > 0 && (
+                        <span className="flex items-center justify-center bg-white/25 backdrop-blur-sm 
+                          px-1.5 py-0.5 rounded-full text-xs font-medium text-white/90
+                          shadow-inner shadow-white/10 group-hover:bg-white/30 transition-all duration-300"
+                        >
+                          {selectedLanguages.length}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 </div>
 

@@ -141,17 +141,33 @@ const RepoCard = ({ repo, onReadmeClick, onVisualizationClick }) => {
               href={repo.html_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-800 text-white text-sm hover:bg-gray-900 transition-colors"
+              className="group relative flex items-center justify-center gap-2 px-4 py-2 rounded-xl 
+                bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black
+                text-white text-sm font-medium shadow-md hover:shadow-xl
+                transition-all duration-300 overflow-hidden"
             >
-              <ExternalLink className="w-4 h-4" />
-              View Repo
+              <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.15] mix-blend-soft-light" />
+              <div className="relative flex items-center gap-2">
+                <ExternalLink className="w-4 h-4 transition-transform group-hover:scale-110 duration-300" />
+                <span className="group-hover:translate-x-0.5 transition-transform duration-300">
+                  View Repo
+                </span>
+              </div>
             </a>
             <button
               onClick={() => onReadmeClick(repo.owner.login, repo.name)}
-              className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              className="group relative flex items-center justify-center gap-2 px-4 py-2 rounded-xl 
+                bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700
+                text-white text-sm font-medium shadow-md hover:shadow-xl
+                transition-all duration-300 overflow-hidden"
             >
-              <DocumentTextIcon className="h-4 w-4 text-gray-600 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300" />
-              README
+              <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.15] mix-blend-soft-light" />
+              <div className="relative flex items-center gap-2">
+                <DocumentTextIcon className="h-4 w-4 transition-transform group-hover:scale-110 duration-300" />
+                <span className="group-hover:translate-x-0.5 transition-transform duration-300">
+                  README
+                </span>
+              </div>
             </button>
           </div>
 
