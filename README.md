@@ -50,6 +50,8 @@ A feature-rich React + Vite application for exploring GitHub repositories. Searc
 - 🔄 Real-time data updates
 - 📊 Language usage visualization
 - 📖 README preview modal
+![image](https://github.com/user-attachments/assets/4c435213-5fd4-4d33-bc48-23f3d8314aa6)
+![image](https://github.com/user-attachments/assets/d643f84f-7639-408d-a376-194a58d66063)
 
 ## 🛠️ Tech Stack
 
@@ -153,6 +155,7 @@ npm run dev
    - Monitor repository trends
    - Track code complexity
    - Analyze community engagement
+ ![image](https://github.com/user-attachments/assets/553bf8a9-73ea-411b-888d-b88b552d28f8)
 
 ## ⚙️ Configuration Options
 
