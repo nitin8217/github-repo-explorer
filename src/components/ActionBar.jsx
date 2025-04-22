@@ -7,8 +7,9 @@ import {
   MoonIcon,
   EllipsisHorizontalIcon
 } from "@heroicons/react/24/outline";
+import BulkCloner from './BulkCloner';
 
-const ActionBar = ({ onExport, octokit, isDark, onThemeToggle }) => {
+const ActionBar = ({ onExport, octokit, isDark, onThemeToggle, repos }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [rateLimit, setRateLimit] = useState(null);
   const menuRef = useRef(null);
@@ -44,6 +45,8 @@ const ActionBar = ({ onExport, octokit, isDark, onThemeToggle }) => {
     return 'text-red-500';
   };
 
+  const buttonBaseClass = "flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors";
+
   return (
     <div className="fixed bottom-6 right-6" ref={menuRef}>
       <motion.button
@@ -61,40 +64,49 @@ const ActionBar = ({ onExport, octokit, isDark, onThemeToggle }) => {
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="absolute bottom-full right-0 mb-2 w-48 rounded-xl shadow-xl overflow-hidden
-                     bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+            className="absolute bottom-full right-0 mb-2 w-48 rounded-xl shadow-xl overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2 space-y-1"
           >
             {/* Rate Limit */}
-            <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 text-sm">
-                <ChartBarIcon className={`w-5 h-5 ${getRateLimitColor()}`} />
-                <span className="text-gray-700 dark:text-gray-300">
-                  {rateLimit ? `${rateLimit.remaining}/${rateLimit.limit}` : 'Loading...'}
-                </span>
-              </div>
+            <div className={buttonBaseClass}>
+              <ChartBarIcon className={`w-5 h-5 ${getRateLimitColor()}`} />
+              <span>
+                {rateLimit ? `${rateLimit.remaining}/${rateLimit.limit}` : 'Loading...'}
+              </span>
             </div>
 
+            {/* Divider */}
+            <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2" />
+
             {/* Export Options */}
-            <div className="p-1">
-              {[
-                { format: 'csv', icon: '📊', label: 'Export as CSV' },
-                { format: 'json', icon: '🗃️', label: 'Export as JSON' },
-                { format: 'pdf', icon: '📑', label: 'Export as PDF' }
-              ].map((item) => (
-                <button
-                  key={item.format}
-                  onClick={() => {
-                    onExport(item.format);
-                    setIsOpen(false);
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 
-                           hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <span>{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              ))}
+            {[
+              { format: 'csv', icon: '📊', label: 'Export as CSV' },
+              { format: 'json', icon: '🗃️', label: 'Export as JSON' },
+              { format: 'pdf', icon: '📑', label: 'Export as PDF' }
+            ].map((item) => (
+              <button
+                key={item.format}
+                onClick={() => {
+                  onExport(item.format);
+                  setIsOpen(false);
+                }}
+                className={buttonBaseClass}
+              >
+                <span className="w-5 h-5 flex items-center justify-center">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+
+            {/* Divider */}
+            <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2" />
+
+            {/* Bulk Cloner */}
+            <div className={buttonBaseClass}>
+              <ArrowDownTrayIcon className="w-5 h-5" />
+              <BulkCloner repos={repos} darkMode={isDark} />
             </div>
+
+            {/* Divider */}
+            <div className="h-px bg-gray-200 dark:bg-gray-700 mx-2" />
 
             {/* Theme Toggle */}
             <button
@@ -102,8 +114,7 @@ const ActionBar = ({ onExport, octokit, isDark, onThemeToggle }) => {
                 onThemeToggle();
                 setIsOpen(false);
               }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 
-                       hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-t border-gray-200 dark:border-gray-700"
+              className={buttonBaseClass}
             >
               {isDark ? (
                 <>

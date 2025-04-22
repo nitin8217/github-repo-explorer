@@ -572,6 +572,7 @@ function App() {
         octokit={octokit}
         isDark={darkMode}
         onThemeToggle={toggleDarkMode}
+        repos={filteredAndSortedRepos}  // Add this line
       />
 
       <LanguageCloud
