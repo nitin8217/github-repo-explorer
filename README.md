@@ -155,6 +155,8 @@ npm run dev
    - Monitor repository trends
    - Track code complexity
    - Analyze community engagement
+
+ 
  ![image](https://github.com/user-attachments/assets/553bf8a9-73ea-411b-888d-b88b552d28f8)
 
 ## ⚙️ Configuration Options
