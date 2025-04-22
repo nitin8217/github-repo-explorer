@@ -15,13 +15,35 @@ A feature-rich React + Vite application for exploring GitHub repositories. Searc
   - Sort by name, stars, or creation date
   - Filter by programming languages
   - Bulk repository cloning
-  
+
+### AI-Powered Features
+- 🤖 Smart Repository Analysis:
+  - Code quality assessment
+  - Repository health scoring
+  - Dependency vulnerability detection
+  - Documentation coverage analysis
+- 🔮 Intelligent Recommendations:
+  - Similar repository suggestions
+  - Best practices recommendations
+  - Security improvement tips
+  - Performance optimization insights
+- 🎯 AI-Assisted Search:
+  - Natural language query processing
+  - Semantic code search
+  - Context-aware filtering
+  - Smart repository categorization
+- 📊 Advanced Analytics:
+  - Predictive trend analysis
+  - Code complexity metrics
+  - Technical debt assessment
+  - Community engagement insights
+
 ### Data Export Options
 - 📑 Export repository data as:
   - CSV format
   - JSON format
   - PDF reports
-  
+
 ### UI/UX Features
 - 🌓 Dark/Light mode toggle
 - 📱 Responsive design for all devices
@@ -37,7 +59,18 @@ A feature-rich React + Vite application for exploring GitHub repositories. Searc
   - Tailwind CSS
   - Framer Motion
   - Hero Icons
-  
+
+- **AI Integration:**
+  - **Language Models:**
+    - Google Gemini API
+    - Natural Language Processing
+    - Machine Learning Models
+  - **AI Features:**
+    - Code Analysis Tools
+    - Semantic Search Engine
+    - Pattern Recognition
+    - Predictive Analytics
+
 - **APIs & Integration:**
   - GitHub REST API
   - Octokit
@@ -105,6 +138,22 @@ npm run dev
 3. Choose format (CSV/JSON/PDF)
 4. Save the exported file
 
+### AI Features Usage
+1. **Smart Analysis**
+   - View repository health score
+   - Check code quality metrics
+   - Review security recommendations
+
+2. **Intelligent Search**
+   - Use natural language queries
+   - Search by code patterns
+   - Find similar repositories
+
+3. **Analytics Dashboard**
+   - Monitor repository trends
+   - Track code complexity
+   - Analyze community engagement
+
 ## ⚙️ Configuration Options
 
 ### Rate Limiting
@@ -136,8 +185,8 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 📞 Support
 
-For support, email [nitinthalur0@gmail.com] or open an issue in the repository.
+For support, email nitinthalur0@gmail.com or open an issue in the repository.
 
 ---
 
-Made with ❤️ by [Nitin]
+Made with ❤️ by Nitin
